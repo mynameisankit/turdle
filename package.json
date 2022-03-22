@@ -1,7 +1,21 @@
 {
 	"name": "turdle",
-	"version": "1.0.1",
+	"version": "1.0.2",
 	"license": "MIT",
+	"contributors":[
+		{
+			"name": "Ayush Choudhury",
+			"email": "ayush.choudhury@iiitg.ac.in"
+		},
+		{
+			"name": "Ankit Kumar",
+			"email": "ankit.kumar19@iiitg.ac.in"
+		},
+		{
+			"name": "Aniruddh Sharma",
+			"email": "aniruddh.sharma@iiitg.ac.in"
+		}
+	],
 	"bin": {
 		"turdle": "./bin/cli.js"
 	},
