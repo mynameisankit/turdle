@@ -20,6 +20,7 @@
 		"ink-table": "^3.0.0",
 		"ink-text-input": "^4.0.3",
 		"meow": "^9.0.0",
+		"node-clipboardy": "^1.0.3",
 		"react": "^17.0.2"
 	},
 	"ava": {

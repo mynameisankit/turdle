@@ -3,6 +3,7 @@ const { useState } = require('react');
 const { Text, Box, Spacer, Newline, useInput } = require('ink');
 const wordsDictionary = require('../database/words.json');
 const answersDictionary = require('../database/answers.json');
+const ncp = require('node-clipboardy')
 
 function Game(props) {
     const diffTime = Math.abs(new Date() - new Date('2021/6/19'));
@@ -15,10 +16,34 @@ function Game(props) {
     const [error, setError] = useState(' ');
     const [found, setFound] = useState(false);
     const [turd, setTurd] = useState(false);
+    const [copied, setCopied] = useState('Press ctrl+x to share your progress');
+
+    const finalTextColour = '#A1E8AF';
 
     useInput((input, key) => {
-        if(found || turd)
+        if (found || turd) {
+            if (key.ctrl && input == 'x') {
+                let share = `Wordle ${diffDays} ${found ? currRow : `X`}/6\n\n`;
+
+                for(let row of attempts) {
+                    for(let col of row) {
+                        if(col && col.correct)
+                            share += "🟩";
+                        else if(col && col.exists)
+                            share += "🟨";
+                        else
+                            share += "⬛";
+                    }
+
+                    share += "\n";
+                }
+
+                ncp.writeSync(share);
+                setCopied(`Copied!`);
+            }
+
             return;
+        }
 
         let newCol = currCol;
 
@@ -55,8 +80,8 @@ function Game(props) {
             setAttempts(attempts);
             setRow(currRow + 1);
             setCol(-1);
-            
-            if(currRow == 5)
+
+            if (currRow == 5)
                 setTurd(true);
         }
         else if (input === ' ' || key.tab)
@@ -134,13 +159,13 @@ function Game(props) {
                 ))}
             </Box>
             <Newline />
+            {/* TODO: Find a better way to display the below text */}
             <Box flexDirection='column' justifyContent='center' alignItems='center'>
-                <Text bold color='#EEF1BD'>{found && currRow == 1 && 'Genius!'}</Text>
-                <Text bold color='#EEF1BD'>{turd && `You are ${found ? 'still ' : ''}a turd!`}</Text>
-                <Text bold color='#EEF1BD'>{turd && !found && `The correct answer is ${solution.join('')}`}</Text>
-                <Text bold color='#EEF1BD'>
-                    {found ? `You have found the answer ${solution.join('')} in ${currRow}/6 attempts` : ' '}
-                </Text>
+                <Text bold color={finalTextColour}>{found && currRow == 1 && 'Genius!'}</Text>
+                <Text bold color={finalTextColour}>{turd && `You are ${found ? 'still ' : ''}a turd!`}</Text>
+                <Text bold color={finalTextColour}>{turd && !found && `The correct answer is ${solution.join('')}`}</Text>
+                <Text bold color={finalTextColour}>{found ? `You have found the answer ${solution.join('')} in ${currRow}/6 attempts` : ' '}</Text>
+                <Text bold color={finalTextColour}>{(found || turd) && copied}</Text>
                 <Spacer />
             </Box>
             <Newline />
