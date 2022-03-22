@@ -13,6 +13,5 @@ $ turdle
 ```
 
 ## Upcoming features
-- [ ] Caching of progress
 - [ ] Application responsiveness
 - [ ] TBA [💩](https://www.youtube.com/watch?v=dQw4w9WgXcQ)
