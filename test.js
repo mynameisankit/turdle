@@ -1,6 +1,7 @@
-const wordsDictionary = require('./database/words.json');
+const answersDictionary = require('./database/answers.json');
 
-currWord = 'abuna'.split('')
-if(wordsDictionary[currWord.join('').toLowerCase()] == undefined) {
-    console.log(`Word ${currWord.join('').toLowerCase()} not in dictionary`);
-}
+const diffTime = Math.abs(new Date() - new Date('2021/6/19'));
+const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) - 1;
+let solution = answersDictionary[diffDays%(answersDictionary.length)];
+
+console.log(solution);

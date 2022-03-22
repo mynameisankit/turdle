@@ -16,9 +16,9 @@ function App() {
 
 	return (
 		<Box justifyContent='center' alignItems='center' flexDirection='column'>
-			<Text>Press "Esc" to exit</Text>
 			<BigText text="TURDLE" />
 			<Game />
+			<Text>You can press "Esc" to exit</Text>
 		</Box>
 	);
 }
