@@ -2,7 +2,7 @@
 	"name": "turdle",
 	"version": "1.0.2",
 	"license": "MIT",
-	"contributors":[
+	"contributors": [
 		{
 			"name": "Ayush Choudhury",
 			"email": "ayush.choudhury@iiitg.ac.in"
@@ -30,6 +30,7 @@
 		"ui.js"
 	],
 	"dependencies": {
+		"file-system-cache": "^1.0.5",
 		"import-jsx": "^4.0.1",
 		"ink": "^3.2.0",
 		"ink-big-text": "^1.2.0",

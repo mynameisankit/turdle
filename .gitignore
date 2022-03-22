@@ -1,2 +1,4 @@
 node_modules
 .editorconfig
+test.js
+.cache
