@@ -9,19 +9,3 @@
 $ npm install --global turdle
 ```
 
-
-## CLI
-
-```
-$ turdle --help
-
-  Usage
-    $ turdle
-
-  Options
-    --name  Your name
-
-  Examples
-    $ turdle --name=Jane
-    Hello, Jane
-```
