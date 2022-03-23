@@ -1,7 +1,25 @@
 {
 	"name": "turdle",
-	"version": "1.0.2",
+	"description": "Wordle for your command line",
+	"version": "1.0.3",
+	"keywords": [
+		"terminal",
+		"wordle",
+		"cli",
+		"game",
+		"fun",
+		"reactjs",
+		"ink"
+	],
 	"license": "MIT",
+	"homepage": "https://github.com/mynameisankit/turdle",
+	"repository": {
+		"type": "git",
+		"url": "https://github.com/mynameisankit/turdle"
+	},
+	"bugs":{
+		"url": "https://github.com/mynameisankit/turdle/issues"
+	},
 	"contributors": [
 		{
 			"name": "Ayush Choudhury",
@@ -16,9 +34,7 @@
 			"email": "aniruddh.sharma@iiitg.ac.in"
 		}
 	],
-	"bin": {
-		"turdle": "./bin/cli.js"
-	},
+	"bin": "dist/cli.js",
 	"engines": {
 		"node": ">=10"
 	},
@@ -26,8 +42,9 @@
 		"test": "xo && ava"
 	},
 	"files": [
-		"cli.js",
-		"ui.js"
+		"dist",
+		"LICENSE",
+		"readme.md"
 	],
 	"dependencies": {
 		"file-system-cache": "^1.0.5",
