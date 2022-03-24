@@ -1,6 +1,6 @@
 # Turdle
 
-![App demo](./media/demo.gif)
+![App demo](https://raw.githubusercontent.com/mynameisankit/turdle/main/media/demo.gif)
 
 ## Getting started
 
