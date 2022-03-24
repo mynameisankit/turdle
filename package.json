@@ -1,7 +1,7 @@
 {
 	"name": "turdle",
 	"description": "Wordle for your command line",
-	"version": "1.0.3",
+	"version": "1.0.32",
 	"keywords": [
 		"terminal",
 		"wordle",
