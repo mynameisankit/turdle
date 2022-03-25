@@ -17,7 +17,7 @@
 		"type": "git",
 		"url": "https://github.com/mynameisankit/turdle"
 	},
-	"bugs":{
+	"bugs": {
 		"url": "https://github.com/mynameisankit/turdle/issues"
 	},
 	"contributors": [
@@ -51,6 +51,7 @@
 		"import-jsx": "^4.0.1",
 		"ink": "^3.2.0",
 		"ink-big-text": "^1.2.0",
+		"ink-divider": "^3.0.0",
 		"ink-gradient": "^2.0.0",
 		"meow": "^9.0.0",
 		"node-clipboardy": "^1.0.3",

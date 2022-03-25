@@ -1,12 +1,15 @@
 const React = require('react');
 const { useState, useEffect } = require('react');
-const { Text, Box, Spacer, Newline, useInput } = require('ink');
+const { Text, Box, Newline, useInput } = require('ink');
 const ncp = require('node-clipboardy');
 const Cache = require('file-system-cache').default;
+const importJsx = require('import-jsx');
+
+const Statistics = importJsx('./Statistics');
 
 //Importing dictionary
-const wordsDictionary = require('./database/words.json');
-const answersDictionary = require('./database/answers.json');
+const wordsDictionary = require('../database/words.json');
+const answersDictionary = require('../database/answers.json');
 
 const gameCache = Cache();
 
@@ -18,17 +21,19 @@ function Game() {
     const [currCol, setCol] = useState(-1);
     const [attempts, setAttempts] = useState(null);
     const [error, setError] = useState(' ');
-    const [found, setFound] = useState(false);
-    const [turd, setTurd] = useState(false);
     const [copied, setCopied] = useState('Press ctrl+X to share your progress');
+    const [completed, setCompleted] = useState({ found: false, turd: false });
+    const [timer, setTimer] = useState({ seconds: 0, minutes: 0, hours: 0 });
 
     //Initialize State on first mount
     useEffect(async () => {
         const ttl = await gameCache.get('ttl', new Date());
 
         //Clear the cache when new day starts
-        if (ttl === null || new Date().getDate() != new Date(ttl).getDate())
-            await gameCache.clear();
+        if (ttl === null || new Date().getDate() != new Date(ttl).getDate()) {
+            await gameCache.remove('attempts');
+            await gameCache.remove('ttl');
+        }
 
         const cachedAttempt = await gameCache.get('attempts', Array(6).fill(0).map(() => new Array(5).fill(null)));
 
@@ -54,10 +59,35 @@ function Game() {
 
         setAttempts(cachedAttempt);
         setRow(firstEmptyRow);
-        setFound(isFound);
-        if (firstEmptyRow === 6)
-            setTurd(true);
+        setCompleted({
+            found: isFound,
+            turd: (firstEmptyRow === 6)
+        });
+
+        // const timerId = setInterval(() => {
+        //     const time = new Date();
+        //     const [h, m, s] = [time.getHours(), time.getMinutes(), time.getSeconds()];
+
+        //     setTimer({
+        //         seconds: 60 - s,
+        //         minutes: 60 - m,
+        //         hours: 24 - h
+        //     });
+        // }, 1000);
+
+        // return (() => clearInterval(timerId));
     }, []);
+
+    useEffect(async () => {
+        const { found } = completed;
+
+        const streak = await gameCache.get('streak');
+        const played = await gameCache.get('played');
+
+        //Silently fail when an error occurs
+        await gameCache.set('streak', found ? streak + 1 : 0);
+        await gameCache.set('played', played + 1);
+    }, [completed.found, completed.turd]);
 
     useInput(async (input, key) => {
         if (key.escape)
@@ -65,6 +95,8 @@ function Game() {
 
         if (input !== '')
             input = input[0];
+
+        const { found, turd } = completed;
 
         if (found || turd) {
             if (key.ctrl && input == 'x') {
@@ -142,19 +174,20 @@ function Game() {
                 }
             }
 
-            setFound(numCorrect === 5);
-            setAttempts(attempts);
-            setRow(currRow + 1);
-            setCol(-1);
-
             //Save the board in cache with the time
             await gameCache.save([
                 { key: 'attempts', value: attempts },
                 { key: 'ttl', value: new Date() }
             ]);
 
-            if (currRow == 5)
-                setTurd(true);
+
+            setAttempts(attempts);
+            setRow(currRow + 1);
+            setCol(-1);
+            setCompleted({
+                found: (numCorrect === 5),
+                turd: (currRow == 5)
+            });
         }
         else if (input === ' ' || key.tab)
             return;
@@ -188,64 +221,72 @@ function Game() {
     });
 
     const finalTextColour = '#A1E8AF';
+    const { found, turd } = completed;
+    const { hours, minutes, seconds } = timer;
+
     return (
-        <Box flexDirection='column' alignItems='center'>
-            <Box justifyContent='center' alignItems='center'>
-                <Text color='#F85A3E'>{error}</Text>
-            </Box>
+        <React.Fragment>
             <Box flexDirection='column' alignItems='center'>
-                {attempts && attempts.map((row, row_idx) => (
-                    <Box key={row_idx}>
-                        {
-                            row.map((col, col_idx) => {
-                                let textColor;
+                <Box justifyContent='center' alignItems='center'>
+                    <Text color='#F85A3E'>{error}</Text>
+                </Box>
+                <Box flexDirection='column' alignItems='center'>
+                    {attempts && attempts.map((row, row_idx) => (
+                        <Box key={row_idx}>
+                            {
+                                row.map((col, col_idx) => {
+                                    let textColor;
 
-                                if (col === null)
-                                    textColor = 'white';
-                                else if (col.correct)
-                                    textColor = 'green';
-                                else if (col.exists)
-                                    textColor = 'yellow';
-                                else if (row_idx < currRow)
-                                    textColor = 'grey';
-                                else
-                                    textColor = 'white';
+                                    if (col === null)
+                                        textColor = 'white';
+                                    else if (col.correct)
+                                        textColor = 'green';
+                                    else if (col.exists)
+                                        textColor = 'yellow';
+                                    else if (row_idx < currRow)
+                                        textColor = 'grey';
+                                    else
+                                        textColor = 'white';
 
-                                return (
-                                    <Box
-                                        height={3}
-                                        width={6}
-                                        key={col_idx}
-                                        borderStyle='single'
-                                        borderColor={textColor}
-                                        alignItems='center'
-                                        justifyContent='center'
-                                    >
-                                        <Text
-                                            bold={col && col.exists && col.correct}
-                                            color={textColor}
+                                    return (
+                                        <Box
+                                            height={3}
+                                            width={6}
+                                            key={col_idx}
+                                            borderStyle='single'
+                                            borderColor={textColor}
+                                            alignItems='center'
+                                            justifyContent='center'
                                         >
-                                            {col === null ? ' ' : col.val}
-                                        </Text>
-                                    </Box>
-                                );
-                            })
-                        }
-                    </Box>
-                ))}
+                                            <Text
+                                                bold={col && col.exists && col.correct}
+                                                color={textColor}
+                                            >
+                                                {col === null ? ' ' : col.val}
+                                            </Text>
+                                        </Box>
+                                    );
+                                })
+                            }
+                        </Box>
+                    ))}
+                </Box>
+                <Newline />
+                {/* TODO: Find a better way to display the below text */}
+                <Box flexDirection='column' justifyContent='center' alignItems='center'>
+                    <Text bold color={finalTextColour}>{found && currRow == 1 && 'Genius!'}</Text>
+                    <Text bold color={finalTextColour}>{turd && `You are ${found ? 'still ' : ''}a turd!`}</Text>
+                    <Text bold color={finalTextColour}>{turd && !found && `The correct answer is ${solution.join('')}`}</Text>
+                    <Text bold color={finalTextColour}>{found ? `You have found the answer ${solution.join('')} in ${currRow}/6 attempts` : ' '}</Text>
+                    <Text bold color={finalTextColour}>{(found || turd) && copied}</Text>
+                </Box>
             </Box>
-            <Newline />
-            {/* TODO: Find a better way to display the below text */}
-            <Box flexDirection='column' justifyContent='center' alignItems='center'>
-                <Text bold color={finalTextColour}>{found && currRow == 1 && 'Genius!'}</Text>
-                <Text bold color={finalTextColour}>{turd && `You are ${found ? 'still ' : ''}a turd!`}</Text>
-                <Text bold color={finalTextColour}>{turd && !found && `The correct answer is ${solution.join('')}`}</Text>
-                <Text bold color={finalTextColour}>{found ? `You have found the answer ${solution.join('')} in ${currRow}/6 attempts` : ' '}</Text>
-                <Text bold color={finalTextColour}>{(found || turd) && copied}</Text>
-                <Spacer />
-            </Box>
-            <Newline />
-        </Box>
+            {/* {(found || turd) && <Statistics cache={gameCache} found={found} />} */}
+            {/* <Box flexDirection='column' borderStyle='single' alignItems='center'>
+                <Text bold>Time Remaining for next wordle</Text>
+                <Text bold>{hours}:{minutes}:{seconds}</Text>
+            </Box> */}
+        </React.Fragment>
     );
 }
 
