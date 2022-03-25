@@ -2,7 +2,6 @@ const React = require('react');
 const { useState, useEffect, useContext } = require('react');
 const { Text, Box, Newline, useInput } = require('ink');
 const ncp = require('node-clipboardy');
-const Divider = require('ink-divider');
 const importJsx = require('import-jsx');
 
 const { CacheContext, keys } = importJsx('./CacheContext');

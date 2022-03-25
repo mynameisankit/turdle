@@ -10,35 +10,13 @@ function Statistics() {
     const cache = useContext(CacheContext);
 
     const [statistics, setStatistics] = useState({});
-    const [timer, setTimer] = useState({ seconds: 0, minutes: 0, hours: 0 });
 
     //Fetch Stats
     useEffect(async () => {
         const stats = await cache.get(keys.STATISTICS, {});
-
-        const timerId = setInterval(() => {
-            const time = new Date();
-            const [h, m] = [time.getHours(), time.getMinutes()];
-
-            setTimer({
-                minutes: 60 - m,
-                hours: 24 - h
-            });
-        }, 60 * 1000);
-
-        const time = new Date();
-        const [h, m] = [time.getHours(), time.getMinutes()];
-
         setStatistics(stats);
-        setTimer({
-            minutes: 60 - m,
-            hours: 24 - h
-        });
-
-        return (() => clearInterval(timerId));
     }, []);
 
-    const { hours, minutes, seconds } = timer;
     const { played, currentStreak, maxStreak, winPercentage } = statistics;
     let { guessDistribution } = statistics;
 
@@ -46,6 +24,9 @@ function Statistics() {
         guessDistribution = new Array(6).fill(0);
 
     const maxCount = Math.max(...guessDistribution);
+
+    const time = new Date();
+    const [h, m] = [time.getHours(), time.getMinutes()];
 
     return (
         <Box alignItems='center' flexDirection='column'>
@@ -92,7 +73,7 @@ function Statistics() {
             </Box>
             <Box flexDirection='column' alignItems='center' marginBottom={1}>
                 <Text bold>Next Turdle</Text>
-                <Text>{hours} hours and {minutes} minutes</Text>
+                <Text>{24 - h} hours and {60 - m} minutes</Text>
             </Box>
         </Box>
     );
