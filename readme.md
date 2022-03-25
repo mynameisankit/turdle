@@ -13,7 +13,6 @@ $ turdle
 ```
 
 ## Upcoming features
-- [ ] Tutorial
 - [ ] Streak, Statistics
 - [ ] Robust error handling - Instead of silently failing, employ other measures to save progress
 - [ ] Application responsiveness
