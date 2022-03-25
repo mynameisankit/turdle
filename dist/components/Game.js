@@ -1,41 +1,42 @@
 const React = require('react');
-const { useState, useEffect } = require('react');
+const { useState, useEffect, useContext } = require('react');
 const { Text, Box, Newline, useInput } = require('ink');
 const ncp = require('node-clipboardy');
-const Cache = require('file-system-cache').default;
+const Divider = require('ink-divider');
 const importJsx = require('import-jsx');
 
-const Statistics = importJsx('./Statistics');
+const { CacheContext, keys } = importJsx('./CacheContext');
+const { PageContext, pages } = importJsx('./PageContext');
 
 //Importing dictionary
 const wordsDictionary = require('../database/words.json');
 const answersDictionary = require('../database/answers.json');
 
-const gameCache = Cache();
-
 function Game() {
     const diffDays = Math.ceil(Math.abs(new Date() - new Date('2021/6/19')) / (1000 * 60 * 60 * 24)) - 1;
     const solution = answersDictionary[diffDays % (answersDictionary.length)].toUpperCase().split('');
+
+    const cache = useContext(CacheContext);
+    const { setPage } = useContext(PageContext);
 
     const [currRow, setRow] = useState(0);
     const [currCol, setCol] = useState(-1);
     const [attempts, setAttempts] = useState(null);
     const [error, setError] = useState(' ');
-    const [copied, setCopied] = useState('Press ctrl+X to share your progress');
+    const [copied, setCopied] = useState(false);
     const [completed, setCompleted] = useState({ found: false, turd: false });
-    const [timer, setTimer] = useState({ seconds: 0, minutes: 0, hours: 0 });
 
     //Initialize State on first mount
     useEffect(async () => {
-        const ttl = await gameCache.get('ttl', new Date());
+        const ttl = await cache.get(keys.GAME_CACHE_SET, new Date());
 
         //Clear the cache when new day starts
-        if (ttl === null || new Date().getDate() != new Date(ttl).getDate()) {
-            await gameCache.remove('attempts');
-            await gameCache.remove('ttl');
+        if (ttl === null || new Date().getDate() !== new Date(ttl).getDate()) {
+            await cache.remove(keys.ATTEMPTS);
+            await cache.remove(keys.GAME_CACHE_SET);
         }
 
-        const cachedAttempt = await gameCache.get('attempts', Array(6).fill(0).map(() => new Array(5).fill(null)));
+        const cachedAttempt = await cache.get(keys.ATTEMPTS, Array(6).fill(0).map(() => new Array(5).fill(null)));
 
         let firstEmptyRow = 6;
         let isFound = false;
@@ -63,32 +64,41 @@ function Game() {
             found: isFound,
             turd: (firstEmptyRow === 6)
         });
-
-        // const timerId = setInterval(() => {
-        //     const time = new Date();
-        //     const [h, m, s] = [time.getHours(), time.getMinutes(), time.getSeconds()];
-
-        //     setTimer({
-        //         seconds: 60 - s,
-        //         minutes: 60 - m,
-        //         hours: 24 - h
-        //     });
-        // }, 1000);
-
-        // return (() => clearInterval(timerId));
     }, []);
 
+    //Update the player statistics
     useEffect(async () => {
-        const { found } = completed;
+        const { found, turd } = completed;
 
-        const streak = await gameCache.get('streak');
-        const played = await gameCache.get('played');
+        const date_set = await cache.get(keys.STATISTICS_SET, null);
 
-        //Silently fail when an error occurs
-        await gameCache.set('streak', found ? streak + 1 : 0);
-        await gameCache.set('played', played + 1);
-    }, [completed.found, completed.turd]);
+        if ((found || turd) &&
+            (date_set === null || new Date(date_set).getDate() !== new Date().getDate())) {
+            const stats = await cache.get(keys.STATISTICS, {
+                played: 0,
+                currentStreak: 0,
+                maxStreak: 0,
+                wins: 0,
+                winPercentage: 0,
+                guessDistribution: new Array(6).fill(0)
+            });
 
+            //Silently fail when an error occurs
+            stats.currentStreak = found ? stats.currentStreak + 1 : 0;
+            stats.maxStreak = Math.max(stats.maxStreak, stats.currentStreak);
+            stats.wins += found ? 1 : 0;
+            stats.played += 1;
+            stats.winPercentage = stats.wins / stats.played;
+            if (found)
+                stats.guessDistribution[currRow - 1] += 1;
+
+            await cache.set(keys.STATISTICS, stats);
+            await cache.set(keys.STATISTICS_SET, new Date());
+        }
+
+    }, [completed]);
+
+    //Update the state according to user input
     useInput(async (input, key) => {
         if (key.escape)
             return;
@@ -99,31 +109,35 @@ function Game() {
         const { found, turd } = completed;
 
         if (found || turd) {
-            if (key.ctrl && input == 'x') {
-                let share = `Wordle ${diffDays} ${found ? currRow : `X`}/6\n\n`;
+            if (key.ctrl) {
+                if (input === 'x' || input === 'X') {
+                    let share = `Wordle ${diffDays} ${found ? currRow : `X`}/6\n\n`;
 
-                for (let row of attempts) {
-                    for (let col of row) {
-                        if (col && col.correct)
-                            share += "🟩";
-                        else if (col && col.exists)
-                            share += "🟨";
-                        else
-                            share += "⬛";
+                    for (let row of attempts) {
+                        for (let col of row) {
+                            if (col && col.correct)
+                                share += "🟩";
+                            else if (col && col.exists)
+                                share += "🟨";
+                            else
+                                share += "⬛";
+                        }
+
+                        share += "\n";
                     }
 
-                    share += "\n";
+                    ncp.writeSync(share);
+                    setCopied(true);
                 }
+                else if (input === 's' || input === 'S')
+                    setPage(pages.STATISTICS);
 
-                ncp.writeSync(share);
-                setCopied(`Copied!`);
+                return;
             }
-
-            return;
         }
 
         if (key.return) {
-            if (currCol != 4) {
+            if (currCol !== 4) {
                 setError('Not enough letters');
                 return;
             }
@@ -144,7 +158,7 @@ function Game() {
             for (let i = 0; i < solution.length; i++) {
                 const curr = solution[i];
 
-                if (freq[curr] == undefined)
+                if (freq[curr] === undefined)
                     freq[curr] = 1;
                 else
                     freq[curr]++;
@@ -175,9 +189,9 @@ function Game() {
             }
 
             //Save the board in cache with the time
-            await gameCache.save([
-                { key: 'attempts', value: attempts },
-                { key: 'ttl', value: new Date() }
+            await cache.save([
+                { key: keys.ATTEMPTS, value: attempts },
+                { key: keys.GAME_CACHE_SET, value: new Date() }
             ]);
 
 
@@ -186,7 +200,7 @@ function Game() {
             setCol(-1);
             setCompleted({
                 found: (numCorrect === 5),
-                turd: (currRow == 5)
+                turd: (currRow === 5)
             });
         }
         else if (input === ' ' || key.tab)
@@ -197,14 +211,14 @@ function Game() {
             //Note - Holding backspace causes weird output
             //BUG: Pressing characters when last col has a value does not work
             if (key.backspace || key.delete) {
-                if (newCol != -1)
+                if (newCol !== -1)
                     attempts[currRow][newCol] = null;
 
-                if (currCol != -1)
+                if (currCol !== -1)
                     newCol -= 1;
             }
             else if (/[a-zA-Z]/.test(input)) {
-                if (currCol != 4)
+                if (currCol !== 4)
                     newCol += 1;
 
                 attempts[currRow][newCol] = {
@@ -220,15 +234,14 @@ function Game() {
         }
     });
 
-    const finalTextColour = '#A1E8AF';
     const { found, turd } = completed;
-    const { hours, minutes, seconds } = timer;
 
     return (
         <React.Fragment>
             <Box flexDirection='column' alignItems='center'>
                 <Box justifyContent='center' alignItems='center'>
-                    <Text color='#F85A3E'>{error}</Text>
+                    <Text bold color='#F85A3E'>{error}</Text>
+                    <Newline />
                 </Box>
                 <Box flexDirection='column' alignItems='center'>
                     {attempts && attempts.map((row, row_idx) => (
@@ -260,8 +273,7 @@ function Game() {
                                         >
                                             <Text
                                                 bold={col && col.exists && col.correct}
-                                                color={textColor}
-                                            >
+                                                color={textColor}>
                                                 {col === null ? ' ' : col.val}
                                             </Text>
                                         </Box>
@@ -272,20 +284,31 @@ function Game() {
                     ))}
                 </Box>
                 <Newline />
-                {/* TODO: Find a better way to display the below text */}
-                <Box flexDirection='column' justifyContent='center' alignItems='center'>
-                    <Text bold color={finalTextColour}>{found && currRow == 1 && 'Genius!'}</Text>
-                    <Text bold color={finalTextColour}>{turd && `You are ${found ? 'still ' : ''}a turd!`}</Text>
-                    <Text bold color={finalTextColour}>{turd && !found && `The correct answer is ${solution.join('')}`}</Text>
-                    <Text bold color={finalTextColour}>{found ? `You have found the answer ${solution.join('')} in ${currRow}/6 attempts` : ' '}</Text>
-                    <Text bold color={finalTextColour}>{(found || turd) && copied}</Text>
-                </Box>
+                {(found || turd) && (
+                    <Box flexDirection='column' justifyContent='center' alignItems='center'>
+                        {[
+                            found ? [
+                                'You are Genius',
+                                'Magnificent',
+                                'You are smart enough, I guess',
+                                'Your mom must be proud of you',
+                                'Reject humanity, Embrace Monke',
+                                'My grandmother must have guessed it by now!'][currRow - 1]
+                                : 'You are a Turd 💩',
+                            turd && !found && `The correct answer is ${solution.join('')}`,
+                            found && `You have found the answer ${solution.join('')} in ${currRow}/6 attempts`,
+                            ' ',
+                            'Press Ctrl + S to see your statistics',
+                            (copied ? 'Copied!' : 'Press Ctrl + X to share your progress'),
+                            ' '
+                        ].map((text, idx) => (
+                            Boolean(text) && (
+                                <Text key={idx} bold color='#A1E8AF'>{text}</Text>
+                            )
+                        ))}
+                    </Box>
+                )}
             </Box>
-            {/* {(found || turd) && <Statistics cache={gameCache} found={found} />} */}
-            {/* <Box flexDirection='column' borderStyle='single' alignItems='center'>
-                <Text bold>Time Remaining for next wordle</Text>
-                <Text bold>{hours}:{minutes}:{seconds}</Text>
-            </Box> */}
         </React.Fragment>
     );
 }

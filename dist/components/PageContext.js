@@ -1,6 +1,13 @@
 const React = require('react');
 
 const PageContext = React.createContext('');
+PageContext.displayName = 'PageContext';
+
+const pages = {
+    TUTORIAL: 'tutorial',
+    GAME: 'main',
+    STATISTICS: 'statistics'
+};
 
 function PageProvider({ value, children }) {
     return (
@@ -10,4 +17,4 @@ function PageProvider({ value, children }) {
     );
 }
 
-module.exports = { PageContext, PageProvider };
+module.exports = { PageContext, PageProvider, pages };

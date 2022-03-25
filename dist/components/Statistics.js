@@ -1,69 +1,98 @@
 const React = require('react');
-const { useState, useEffect } = require('react');
+const { useState, useEffect, useContext } = require('react');
 const { Text, Box } = require('ink');
+const Divider = require('ink-divider');
+const importJsx = require('import-jsx');
 
-const STATISTICS_KEY = 'statistics';
+const { CacheContext, keys } = importJsx('./CacheContext');
 
-function Statistics({ cache, found }) {
+function Statistics() {
+    const cache = useContext(CacheContext);
+
     const [statistics, setStatistics] = useState({});
+    const [timer, setTimer] = useState({ seconds: 0, minutes: 0, hours: 0 });
 
     //Fetch Stats
     useEffect(async () => {
-        const defaultStat = {
-            played: 0,
-            currentStreak: 0,
-            maxStreak: 0,
-            wins: 0,
-            winPercentage: 0,
-            dateSet: null
-        };
+        const stats = await cache.get(keys.STATISTICS, {});
 
-        let stats = await cache.get(STATISTICS_KEY, defaultStat);
+        const timerId = setInterval(() => {
+            const time = new Date();
+            const [h, m] = [time.getHours(), time.getMinutes()];
 
-        if (stats === defaultStat || new Date().getDate() != new Date(stats.dateSet).getDate()) {
-            if (found) {
-                stats.currentStreak += 1;
-                stats.wins++;
-            }
-            else
-                currentStreak = 0;
+            setTimer({
+                minutes: 60 - m,
+                hours: 24 - h
+            });
+        }, 60 * 1000);
 
-            stats.maxStreak = Math.max(stats.maxStreak, stats.currentStreak);
-            stats.played++;
-
-            stats.winPercentage = stats.wins / stats.played;
-
-            stats.dateSet = new Date();
-            await cache.set(STATISTICS_KEY, stats);
-        }
+        const time = new Date();
+        const [h, m] = [time.getHours(), time.getMinutes()];
 
         setStatistics(stats);
+        setTimer({
+            minutes: 60 - m,
+            hours: 24 - h
+        });
+
+        return (() => clearInterval(timerId));
     }, []);
 
+    const { hours, minutes, seconds } = timer;
+    const { played, currentStreak, maxStreak, winPercentage } = statistics;
+    let { guessDistribution } = statistics;
+
+    if (!guessDistribution)
+        guessDistribution = new Array(6).fill(0);
+
+    const maxCount = Math.max(...guessDistribution);
+
     return (
-        <Box width='50%' alignItems='center' flexDirection='column' borderStyle='single'>
-            <Text bold>Statistics</Text>
-            <Box width='100%' alignItems='center' justifyContent='center'>
+        <Box alignItems='center' flexDirection='column'>
+            <Divider title='Statistics' />
+            <Box alignItems='center' justifyContent='space-between' marginY={1}>
                 {[
                     {
                         measure: 'Played',
-                        value: statistics?.played
+                        value: played
                     }, {
                         measure: 'Current Streak',
-                        value: statistics?.currentStreak
+                        value: currentStreak
                     }, {
                         measure: 'Max Streak',
-                        value: statistics?.maxStreak
+                        value: maxStreak
                     }, {
                         measure: 'Win %',
-                        value: statistics?.winPercentage
+                        value: winPercentage
                     },
                 ].map(({ measure, value }) => (
-                    <Box key={measure} flexDirection='column'>
+                    <Box
+                        flexDirection='column'
+                        borderStyle='single'
+                        alignItems='center'
+                        paddingX={1}
+                        marginX={2}
+                        key={measure}>
                         <Text>{value === undefined ? 0 : value}</Text>
-                        <Text>{measure}</Text>
+                        <Text bold>{measure}</Text>
                     </Box>
                 ))}
+            </Box>
+            <Divider title='Guess Distribution' />
+            <Box flexDirection='column' alignItems='flex-start' paddingY={1}>
+                {guessDistribution.map((amt, idx) => (
+                    <Text key={idx}>
+                        {`${idx + 1}  `}
+                        <Text backgroundColor={amt === 0 ? 'gray' : (amt !== maxCount) ? 'white' : 'green'}>
+                            {new Array(Math.min(amt === 0 ? 10 : amt, 10)).fill(' ').join('')}
+                        </Text>
+                        {`  ${amt}`}
+                    </Text>
+                ))}
+            </Box>
+            <Box flexDirection='column' alignItems='center' marginBottom={1}>
+                <Text bold>Next Turdle</Text>
+                <Text>{hours} hours and {minutes} minutes</Text>
             </Box>
         </Box>
     );
