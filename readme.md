@@ -1,5 +1,7 @@
 # Turdle
 
+> Wordle for your command line.
+
 ![App demo](https://raw.githubusercontent.com/mynameisankit/turdle/main/media/demo.gif)
 
 ## Getting started
