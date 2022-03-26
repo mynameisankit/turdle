@@ -8,7 +8,11 @@
 
 ```bash
 
+# With NPM
 $ npm install --global turdle
+
+# With Yarn
+$ yarn global add turdle
 
 $ turdle
 
