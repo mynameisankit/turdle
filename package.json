@@ -34,7 +34,7 @@
 			"email": "aniruddh.sharma@iiitg.ac.in"
 		}
 	],
-	"bin": "dist/cli.js",
+	"bin": "src/cli.js",
 	"engines": {
 		"node": ">=10"
 	},
@@ -42,7 +42,7 @@
 		"test": "xo && ava"
 	},
 	"files": [
-		"dist",
+		"src",
 		"LICENSE",
 		"readme.md"
 	],
