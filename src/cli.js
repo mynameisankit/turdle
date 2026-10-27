@@ -1,17 +1,18 @@
 #!/usr/bin/env node
 
-'use strict';
+import React from "react";
+import { render } from "ink";
+import meow from "meow";
 
-const React = require('react');
-const importJsx = require('import-jsx');
-const { render } = require('ink');
-const meow = require('meow');
+import "tsx/esm";
 
-const ui = importJsx('./ui');
-
-const cli = meow(`
+const { default: UI } = await import("./ui.jsx");
+const CLI = meow(
+    `
 	Usage
 	  $ turdle
-`);
+`,
+    { importMeta: import.meta },
+);
 
-render(React.createElement(ui, cli.flags));
+render(React.createElement(UI, CLI.flags));
